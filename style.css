@@ -56,18 +56,18 @@ h2 { font-size: 13px; color: var(--muted); font-weight: 600; margin: 20px 4px 8p
 /* calendar */
 .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 12px; }
 .cal .wd { color: var(--muted); }
-.cal .d { position: relative; aspect-ratio: 1; display: grid; place-items: center; border-radius: 6px; background: var(--bg); }
+.cal .d { position: relative; aspect-ratio: 1; display: grid; place-items: center; border: 0; border-radius: 6px; background: var(--bg); color: var(--muted); font: inherit; }
 .cal .d.today { outline: 2px solid var(--text); }
+.cal .d.clean { background: var(--ok-bg); color: var(--ok); }
+.cal .d.v1 { background: color-mix(in srgb, var(--warn) 25%, var(--bg)); color: var(--text); }
+.cal .d.v2 { background: color-mix(in srgb, var(--warn) 50%, var(--bg)); color: var(--text); }
+.cal .d.v3 { background: var(--warn); color: #fff; }
 .cal .d.banday { background: var(--ban); color: #fff; }
-.cal .d.ck::after { content: ''; position: absolute; bottom: 3px; width: 4px; height: 4px; border-radius: 50%; background: var(--ok); }
-.legend { display: flex; gap: 12px; margin-top: 8px; font-size: 12px; color: var(--muted); }
-
-/* heatmap */
-.hm { width: 100%; border-collapse: separate; border-spacing: 3px; font-size: 12px; }
-.hm th { color: var(--muted); font-weight: 500; }
-.hm td.k { text-align: left; white-space: nowrap; font-size: 13px; }
-.hm td.c { height: 28px; border-radius: 5px; text-align: center; }
-.hm td.t { text-align: right; font-weight: 700; }
+.cal .d.ck::after, .cal .d.late::after { content: ''; position: absolute; bottom: 3px; width: 5px; height: 5px; border-radius: 50%; }
+.cal .d.ck::after { background: currentColor; }
+.cal .d.late::after { border: 1px solid currentColor; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; margin-right: 3px; }
 
 /* recent */
 .log { display: flex; justify-content: space-between; gap: 8px; width: 100%; padding: 8px 0; border: 0; border-top: 1px solid var(--line); background: none; font-size: 14px; text-align: left; }
@@ -79,6 +79,7 @@ h2 { font-size: 13px; color: var(--muted); font-weight: 600; margin: 20px 4px 8p
 .fab { position: fixed; left: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); width: calc(100% - 32px); }
 .primary { margin-top: 14px; }
 .secondary { width: 100%; min-height: 46px; margin-top: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); font-size: 15px; }
+.secondary.danger { color: var(--ban); }
 .ghost { width: 100%; height: 46px; border: 0; background: transparent; color: var(--muted); font-size: 16px; }
 .ghost.inline { width: auto; color: var(--text); font-weight: 600; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

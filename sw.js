@@ -1,6 +1,6 @@
 // App shell cache: serve from cache instantly (works offline), refresh in background.
 // Updates show up on the next launch. Bump CACHE when changing the file list.
-const CACHE = 'sop-v1';
+const CACHE = 'sop-v3';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {

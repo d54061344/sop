@@ -45,9 +45,9 @@ const closeSheet = id => $(id).classList.remove('open');
 function applyOp(s, op) {
   if (op.op === 'log') { if (!s.logs.some(l => l.id === op.log.id)) s.logs.push(op.log); }
   else if (op.op === 'undo') s.logs = s.logs.filter(l => l.id !== op.id);
-  else if (op.op === 'checkin') {
+  else if (op.op === 'checkin') { // empty items = cancel that day's check-in
     s.checkins = s.checkins.filter(c => c.date !== op.date).concat(op.items.map(x => ({ ...x, date: op.date })));
-    if (!s.checkinDates.includes(op.date)) s.checkinDates.push(op.date);
+    s.checkinDates = s.checkinDates.filter(d => d !== op.date).concat(op.items.length ? [op.date] : []);
   } else if (op.op === 'rule') {
     const i = s.rules.findIndex(r => r.id === op.rule.id);
     if (i < 0) s.rules.push(op.rule); else s.rules[i] = op.rule;
@@ -147,13 +147,14 @@ function render() {
   }).join('') || '<p class="muted">還沒有規則，到 ⚙️ 設定新增。</p>';
 
   renderCalendar(t, weekStart);
-  renderHeatmap(t);
   renderRecent();
   $('fab').textContent = S.checkinDates.includes(t) ? '✓ 今日已結算（點此修改）' : '每日結算';
   renderSyncStatus();
   updateBadge(streak);
 }
 
+// Day colour: red = absolute-ban violation, yellow (darker = more) = other violations,
+// green = checked in with none, grey = nothing recorded. Dot: ● same-day check-in, ○ backfilled.
 function renderCalendar(t, weekStart) {
   const start = addDays(weekStart, -28);
   const done = new Set(S.checkinDates);
@@ -162,28 +163,17 @@ function renderCalendar(t, weekStart) {
     const d = addDays(start, i);
     if (d > t) { html += '<div></div>'; continue; }
     const logs = S.logs.filter(l => l.date === d);
-    const ban = logs.some(l => l.level === '禁止');
-    const bg = !ban && logs.length ? `style="background:color-mix(in srgb, var(--warn) ${Math.min(logs.length, 4) * 22}%, var(--bg))"` : '';
-    html += `<div class="d${ban ? ' banday' : ''}${d === t ? ' today' : ''}${done.has(d) ? ' ck' : ''}" ${bg}>${Number(d.slice(8))}</div>`;
+    const cls = logs.some(l => l.level === '禁止') ? 'banday'
+      : logs.length ? 'v' + Math.min(logs.length, 3)
+      : done.has(d) ? 'clean' : '';
+    const dot = !done.has(d) ? '' : S.checkins.some(c => c.date === d && c.late) ? 'late' : 'ck';
+    html += `<button class="d ${cls} ${dot}${d === t ? ' today' : ''}" onclick="openCheckin('${d}')">${Number(d.slice(8))}</button>`;
   }
-  $('calendar').innerHTML = `<div class="cal">${html}</div>`
-    + '<div class="legend"><span>顏色越深＝違規越多</span><span>紅＝絕對禁止</span><span>綠點＝已結算</span></div>';
-}
-
-function renderHeatmap(t) {
-  const since = addDays(t, -29), rows = {};
-  S.logs.filter(l => l.date >= since).forEach(l => {
-    const h = Math.floor(Number(String(l.timestamp).slice(11, 13)) / 4) || 0;
-    (rows[l.trigger] = rows[l.trigger] || [0, 0, 0, 0, 0, 0])[h]++;
-  });
-  const list = Object.entries(rows).map(([k, v]) => [k, v, v.reduce((a, b) => a + b, 0)]).sort((a, b) => b[2] - a[2]);
-  if (!list.length) { $('heatmap').innerHTML = '<span class="muted">尚無紀錄</span>'; return; }
-  const max = Math.max(...list.flatMap(r => r[1]));
-  $('heatmap').innerHTML = '<table class="hm"><tr><th></th>' + ['0', '4', '8', '12', '16', '20'].map(h => `<th>${h}</th>`).join('') + '<th>計</th></tr>'
-    + list.map(([k, v, tot]) => `<tr><td class="k">${esc(k)}</td>`
-      + v.map(n => `<td class="c" style="background:color-mix(in srgb, var(--warn) ${n ? 15 + 85 * n / max : 0}%, var(--bg))">${n || ''}</td>`).join('')
-      + `<td class="t">${tot}</td></tr>`).join('')
-    + '</table><div class="legend"><span>欄＝時段起點（每 4 小時）</span></div>';
+  $('calendar').innerHTML = `<div class="cal">${html}</div><div class="legend">`
+    + '<span><i class="sw" style="background:var(--ok-bg);border:1px solid var(--ok)"></i>無違規</span>'
+    + '<span><i class="sw" style="background:var(--warn)"></i>有違規（越深越多）</span>'
+    + '<span><i class="sw" style="background:var(--ban)"></i>絕對禁止</span>'
+    + '<span>● 當天結算　○ 補結算</span></div>';
 }
 
 function renderRecent() {
@@ -191,11 +181,15 @@ function renderRecent() {
   const recent = S.logs.slice().sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp))).slice(0, 8);
   $('recent').innerHTML = recent.length ? recent.map(l =>
     `<button class="log" onclick="deleteLog('${l.id}')"><span>${esc(l.ruleText)}<br><span class="muted">${esc(l.trigger)}${l.note ? '・' + esc(l.note) : ''}</span></span>`
-    + `<span class="muted">${pending.has(l.id) ? '⏳ ' : ''}${esc(String(l.timestamp).slice(5, 16))}${l.source === '結算' ? '<br>結算補記' : ''}</span></button>`
+    + `<span class="muted">${pending.has(l.id) ? '⏳ ' : ''}${esc(String(l.timestamp).slice(5, 16))}`
+    + `${l.source === '結算' ? '<br>結算補記' : l.source === '補結算' ? `<br>補 ${esc(l.date.slice(5))}` : ''}</span></button>`
   ).join('') : '<span class="muted">尚無紀錄</span>';
 }
 
 function renderSyncStatus() {
+  $('syncBanner').innerHTML = !cfg ? '<div class="banner stop" onclick="openSetup()">尚未設定連線碼，點此設定</div>'
+    : syncError && syncError !== '離線中' ? `<div class="banner stop" onclick="openSetup()">⚠️ 同步失敗：${esc(syncError)}<br><small>點此重設連線碼</small></div>`
+    : '';
   $('dot').className = 'dot' + (syncError && syncError !== '離線中' ? ' error' : outbox.length || syncing ? ' pending' : '');
   $('syncInfo').innerHTML = [
     syncing ? '同步中…' : syncError ? `⚠️ ${esc(syncError)}` : '✓ 已同步',
@@ -206,19 +200,20 @@ function renderSyncStatus() {
 
 // ===== Log a violation: tap rule → tap trigger (auto-submits) =====
 let logCtx = null;
-function openLog(ruleId, source, onDone) {
-  logCtx = { rule: S.rules.find(r => r.id === ruleId), source, onDone };
+function openLog(ruleId, source, onDone, date) {
+  const triggers = S.triggers.length ? S.triggers : ['未分類']; // never leave the sheet without a submit button
+  logCtx = { rule: S.rules.find(r => r.id === ruleId), source, onDone, triggers, date: date || today() };
   $('logRule').textContent = logCtx.rule.text;
   $('note').value = '';
-  $('chips').innerHTML = S.triggers.map((t, j) => `<button class="chip" onclick="pick(${j})">${esc(t)}</button>`).join('');
+  $('chips').innerHTML = triggers.map((t, j) => `<button class="chip" onclick="pick(${j})">${esc(t)}</button>`).join('');
   openSheet('logSheet');
 }
 
 function pick(j) {
-  const { rule, source, onDone } = logCtx;
+  const { rule, source, onDone, triggers, date } = logCtx;
   const log = {
-    id: uid(), timestamp: stamp(), date: today(), ruleId: rule.id, ruleText: rule.text, level: rule.level,
-    trigger: S.triggers[j], note: $('note').value.trim(), source, penalty: rule.penalty || 0,
+    id: uid(), timestamp: stamp(), date, ruleId: rule.id, ruleText: rule.text, level: rule.level,
+    trigger: triggers[j], note: $('note').value.trim(), source, penalty: rule.penalty || 0,
   };
   closeSheet('logSheet');
   commit({ op: 'log', log });
@@ -243,16 +238,19 @@ function toast(msg, btn, fn) {
   toastTimer = setTimeout(() => $('toast').classList.remove('show'), 5000);
 }
 
-// ===== Daily check-in =====
-let ckState = {};
-function openCheckin() {
-  const t = today(), prev = S.checkins.filter(c => c.date === t);
+// ===== Daily check-in (today, or backfill a past day from the calendar) =====
+let ckState = {}, ckDate = '';
+function openCheckin(date) {
+  ckDate = date || today();
+  const prev = S.checkins.filter(c => c.date === ckDate);
   ckState = {};
-  S.rules.filter(r => r.active && appliesOn(r, t)).forEach(r => {
+  S.rules.filter(r => r.active && appliesOn(r, ckDate)).forEach(r => {
     const p = prev.find(c => c.ruleId === r.id);
-    ckState[r.id] = p ? p.ok : !S.logs.some(l => l.ruleId === r.id && l.date === t);
+    ckState[r.id] = p ? p.ok : !S.logs.some(l => l.ruleId === r.id && l.date === ckDate);
   });
-  $('ckDate').textContent = t;
+  const label = `${ckDate.slice(5).replace('-', '/')}（${WD[weekday(ckDate)]}）`;
+  $('ckTitle').textContent = ckDate === today() ? `每日結算 ${label}` : `補結算 ${label}`;
+  $('ckCancel').style.display = S.checkinDates.includes(ckDate) ? '' : 'none';
   renderCk();
   openSheet('ckSheet');
 }
@@ -268,18 +266,28 @@ function renderCk() {
 
 function setCk(id, ok) {
   // A miss not logged during the day → ask for its trigger too (logged as 結算補記).
-  if (!ok && !S.logs.some(l => l.ruleId === id && l.date === today())) {
-    return openLog(id, '結算', () => { ckState[id] = false; renderCk(); });
+  if (!ok && !S.logs.some(l => l.ruleId === id && l.date === ckDate)) {
+    return openLog(id, ckDate === today() ? '結算' : '補結算', () => { ckState[id] = false; renderCk(); }, ckDate);
   }
   ckState[id] = ok;
   renderCk();
 }
 
 function saveCheckin() {
-  const items = S.rules.filter(r => r.id in ckState).map(r => ({ ruleId: r.id, ruleText: r.text, ok: ckState[r.id] }));
+  const late = ckDate !== today();
+  const items = S.rules.filter(r => r.id in ckState).map(r => ({ ruleId: r.id, ruleText: r.text, ok: ckState[r.id], late }));
+  if (!items.length) return toast('這天沒有適用的規則');
   closeSheet('ckSheet');
-  commit({ op: 'checkin', date: today(), items });
-  toast('結算完成');
+  commit({ op: 'checkin', date: ckDate, items });
+  toast(late ? '補結算完成' : '結算完成');
+}
+
+// Removes only the ✓/✗ rows; violations logged during check-in are kept (delete them from 最近紀錄 if needed).
+function cancelCheckin() {
+  if (!confirm(`取消 ${ckDate} 的結算？\n（當時記下的違規會保留）`)) return;
+  closeSheet('ckSheet');
+  commit({ op: 'checkin', date: ckDate, items: [] });
+  toast('已取消結算');
 }
 
 // ===== Settings =====

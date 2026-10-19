@@ -20,13 +20,12 @@
   <span class="dot" id="dot"></span>
   <button class="icon" onclick="openSettings()" aria-label="設定">⚙️</button>
 </header>
+<div id="syncBanner"></div>
 <div id="banner"></div>
 <div class="stats" id="stats"></div>
 <div id="rules"></div>
-<h2>違規日曆 · 近 5 週</h2>
+<h2>違規日曆 · 近 5 週（點日期可結算）</h2>
 <div class="card" id="calendar"></div>
-<h2>觸發原因 × 時段 · 近 30 天</h2>
-<div class="card" id="heatmap"></div>
 <h2>最近紀錄（點一下可刪除）</h2>
 <div class="card" id="recent"></div>
 <button class="fab" id="fab" onclick="openCheckin()"></button>
@@ -36,7 +35,8 @@
   <div class="sheet">
     <div class="muted">記錄違規</div>
     <div class="sheet-title" id="logRule"></div>
-    <input class="field" id="note" placeholder="備註（選填，先填再點觸發原因）">
+    <input class="field" id="note" placeholder="備註（選填）">
+    <div class="muted" style="margin-top:12px">點觸發原因即送出</div>
     <div class="chips" id="chips"></div>
     <button class="ghost" onclick="closeSheet('logSheet')">取消</button>
   </div>
@@ -45,11 +45,11 @@
 <!-- Daily check-in -->
 <div class="overlay" id="ckSheet">
   <div class="sheet">
-    <div class="muted" id="ckDate"></div>
-    <div class="sheet-title">每日結算</div>
+    <div class="sheet-title" id="ckTitle"></div>
     <div id="ckList"></div>
     <button class="primary" onclick="saveCheckin()">完成結算</button>
-    <button class="ghost" onclick="closeSheet('ckSheet')">取消</button>
+    <button class="secondary danger" id="ckCancel" onclick="cancelCheckin()">取消此日結算</button>
+    <button class="ghost" onclick="closeSheet('ckSheet')">返回</button>
   </div>
 </div>
 
