@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SOP">
+<meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121214" media="(prefers-color-scheme: dark)">
+<title>SOP</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>SOP</h1>
+  <span class="muted" id="today"></span>
+  <span class="dot" id="dot"></span>
+  <button class="icon" onclick="openSettings()" aria-label="設定">⚙️</button>
+</header>
+<div id="banner"></div>
+<div class="stats" id="stats"></div>
+<div id="rules"></div>
+<h2>違規日曆 · 近 5 週</h2>
+<div class="card" id="calendar"></div>
+<h2>觸發原因 × 時段 · 近 30 天</h2>
+<div class="card" id="heatmap"></div>
+<h2>最近紀錄（點一下可刪除）</h2>
+<div class="card" id="recent"></div>
+<button class="fab" id="fab" onclick="openCheckin()"></button>
+
+<!-- Log a violation -->
+<div class="overlay" id="logSheet" onclick="if (event.target === this) closeSheet('logSheet')">
+  <div class="sheet">
+    <div class="muted">記錄違規</div>
+    <div class="sheet-title" id="logRule"></div>
+    <input class="field" id="note" placeholder="備註（選填，先填再點觸發原因）">
+    <div class="chips" id="chips"></div>
+    <button class="ghost" onclick="closeSheet('logSheet')">取消</button>
+  </div>
+</div>
+
+<!-- Daily check-in -->
+<div class="overlay" id="ckSheet">
+  <div class="sheet">
+    <div class="muted" id="ckDate"></div>
+    <div class="sheet-title">每日結算</div>
+    <div id="ckList"></div>
+    <button class="primary" onclick="saveCheckin()">完成結算</button>
+    <button class="ghost" onclick="closeSheet('ckSheet')">取消</button>
+  </div>
+</div>
+
+<!-- Settings -->
+<div class="overlay full" id="settings">
+  <div class="sheet">
+    <div class="sheet-head"><div class="sheet-title">設定</div><button class="ghost inline" onclick="closeSheet('settings')">完成</button></div>
+    <h2>規則</h2>
+    <div id="ruleList"></div>
+    <button class="secondary" onclick="editRule()">＋ 新增規則</button>
+    <h2>觸發原因</h2>
+    <div class="card" id="trigList"></div>
+    <div class="row2">
+      <button class="secondary" onclick="addTrigger()">＋ 新增</button>
+      <button class="secondary" onclick="saveTriggers()">儲存觸發原因</button>
+    </div>
+    <h2>圖示數字（連續結算天數）</h2>
+    <button class="secondary" id="badgeBtn" onclick="enableBadge()"></button>
+    <h2>同步</h2>
+    <div class="card muted" id="syncInfo"></div>
+    <div class="row2">
+      <button class="secondary" onclick="sync()">立即同步</button>
+      <button class="secondary" onclick="openSetup()">重設連線碼</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit rule -->
+<div class="overlay" id="ruleSheet">
+  <div class="sheet">
+    <div class="sheet-title" id="ruleSheetTitle"></div>
+    <div id="ruleForm"></div>
+    <button class="primary" onclick="saveRule()">儲存</button>
+    <button class="ghost" onclick="closeSheet('ruleSheet')">取消</button>
+  </div>
+</div>
+
+<!-- First-run connection -->
+<div class="overlay full" id="setup">
+  <div class="sheet">
+    <div class="sheet-title">連線設定</div>
+    <p class="muted">貼上 Telegram 收到的連線碼（格式：<code>網址|金鑰</code>）。</p>
+    <textarea class="field" id="setupCode" rows="4"></textarea>
+    <button class="primary" onclick="saveSetup()">連線</button>
+    <button class="ghost" id="setupCancel" onclick="closeSheet('setup')">取消</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="toastBtn"></button></div>
+<script src="app.js"></script>
+</body>
+</html>
