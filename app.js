@@ -204,6 +204,7 @@ function openLog(ruleId, source, onDone, date) {
   const triggers = S.triggers.length ? S.triggers : ['未分類']; // never leave the sheet without a submit button
   logCtx = { rule: S.rules.find(r => r.id === ruleId), source, onDone, triggers, date: date || today() };
   $('logRule').textContent = logCtx.rule.text;
+  $('logDetail').textContent = logCtx.rule.detail || '';
   $('note').value = '';
   $('chips').innerHTML = triggers.map((t, j) => `<button class="chip" onclick="pick(${j})">${esc(t)}</button>`).join('');
   openSheet('logSheet');
@@ -331,7 +332,7 @@ function saveTriggers() {
 let editing = null;
 function editRule(id) {
   const r = id ? S.rules.find(x => x.id === id)
-    : { id: 'R' + uid(), category: '交易', level: '遵守', text: '', days: '', penalty: 0, active: true };
+    : { id: 'R' + uid(), category: '交易', level: '遵守', text: '', detail: '', days: '', penalty: 0, active: true };
   editing = { ...r };
   $('ruleSheetTitle').textContent = id ? '編輯規則' : '新增規則';
   renderRuleForm();
@@ -341,6 +342,7 @@ function editRule(id) {
 function readRuleForm() {
   if (!$('rfText')) return;
   editing.text = $('rfText').value;
+  editing.detail = $('rfDetail').value;
   editing.penalty = Math.max(0, Number($('rfPenalty').value) || 0);
 }
 
@@ -362,6 +364,7 @@ function renderRuleForm() {
     `<button class="${cur === v ? 'on' : ''}" onclick="setRf('${field}', '${v}')">${label}</button>`).join('')}</div>`;
   $('ruleForm').innerHTML =
     `<span class="lbl">規則內容（要能明確判斷有沒有做到）</span><input class="field" id="rfText" value="${esc(r.text)}">`
+    + `<span class="lbl">附註（選填，記錄違規時才顯示）</span><textarea class="field" id="rfDetail" rows="3">${esc(r.detail || '')}</textarea>`
     + `<span class="lbl">類別</span>${seg('category', [['交易', '交易'], ['生活', '生活']], r.category)}`
     + (r.category === '交易' ? `<span class="lbl">等級</span>${seg('level', [['禁止', '🔴 絕對禁止'], ['遵守', '🟡 應遵守']], r.level)}` : '')
     + `<span class="lbl">結算時列出的日子（都不選＝每天）</span><div class="seg">${[...WEEK].map(w =>
@@ -372,7 +375,7 @@ function renderRuleForm() {
 
 function saveRule() {
   readRuleForm();
-  const rule = { ...editing, text: editing.text.trim(), active: editing.active === true || editing.active === 'true' };
+  const rule = { ...editing, text: editing.text.trim(), detail: (editing.detail || '').trim(), active: editing.active === true || editing.active === 'true' };
   if (!rule.text) return toast('請輸入規則內容');
   if (rule.days.length === 7) rule.days = '';
   closeSheet('ruleSheet');
@@ -422,6 +425,7 @@ function saveSetup() {
 }
 
 // ===== Boot =====
+document.addEventListener('gesturestart', e => e.preventDefault()); // iOS ignores user-scalable=no; block pinch zoom
 rebuild();
 if (!cfg) openSetup(); else sync();
 window.addEventListener('online', sync);

@@ -1,10 +1,10 @@
-// App shell cache: serve from cache instantly (works offline), refresh in background.
-// Updates show up on the next launch. Bump CACHE when changing the file list.
-const CACHE = 'sop-v3';
+// Network-first app shell: online → always the latest files (updates apply on next open);
+// offline or slow (>2.5s) → cached copy. `cache: 'no-cache'` bypasses GitHub Pages' 10-min HTTP cache.
+const CACHE = 'sop-v4';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))));
   self.skipWaiting();
 });
 
@@ -15,9 +15,17 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return; // API calls go straight to network
-  e.respondWith(caches.open(CACHE).then(async cache => {
-    const hit = await cache.match(e.request, { ignoreSearch: true });
-    const net = fetch(e.request).then(res => { if (res.ok) cache.put(e.request, res.clone()); return res; }).catch(() => hit);
-    return hit || net;
-  }));
+  e.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    try {
+      const res = await Promise.race([
+        fetch(e.request.url, { cache: 'no-cache' }),
+        new Promise((_, reject) => setTimeout(reject, 2500)),
+      ]);
+      if (res.ok) cache.put(e.request, res.clone());
+      return res;
+    } catch {
+      return (await cache.match(e.request, { ignoreSearch: true })) || Response.error();
+    }
+  })());
 });

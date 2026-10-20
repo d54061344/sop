@@ -11,7 +11,7 @@
   }
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; touch-action: manipulation; } /* no double-tap zoom */
 body {
   margin: 0; background: var(--bg); color: var(--text);
   font: 16px/1.4 -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", sans-serif;
@@ -93,6 +93,8 @@ h2 { font-size: 13px; color: var(--muted); font-weight: 600; margin: 20px 4px 8p
 .full .sheet { height: 100%; max-height: none; border-radius: 0; padding-top: calc(12px + env(safe-area-inset-top)); }
 .sheet-head { display: flex; justify-content: space-between; align-items: center; }
 .sheet-title { font-size: 18px; font-weight: 600; margin: 2px 0 12px; }
+.detail { margin: -6px 0 12px; padding: 10px 12px; border-radius: 10px; background: var(--card); color: var(--muted); font-size: 14px; white-space: pre-wrap; }
+.detail:empty { display: none; }
 .field { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--text); font: inherit; font-size: 16px; }
 .chips { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0 4px; }
 .chip { min-height: 54px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); font-size: 16px; }
