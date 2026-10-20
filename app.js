@@ -150,7 +150,6 @@ function render() {
   renderRecent();
   $('fab').textContent = S.checkinDates.includes(t) ? '✓ 今日已結算（點此修改）' : '每日結算';
   renderSyncStatus();
-  updateBadge(streak);
 }
 
 // Day colour: red = absolute-ban violation, yellow (darker = more) = other violations,
@@ -297,7 +296,6 @@ function openSettings() {
   renderRuleList();
   trigDraft = S.triggers.slice();
   renderTrigList();
-  renderBadgeBtn();
   renderSyncStatus();
   openSheet('settings');
 }
@@ -384,29 +382,6 @@ function saveRule() {
   toast('規則已儲存');
 }
 
-// ----- App icon badge = check-in streak (iOS 16.4+, home-screen app, notification permission) -----
-function updateBadge(n) {
-  if (!('setAppBadge' in navigator)) return;
-  (n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => {});
-}
-
-function renderBadgeBtn() {
-  const b = $('badgeBtn');
-  if (!('Notification' in window) || !('setAppBadge' in navigator)) {
-    b.textContent = '此環境不支援（需從主畫面圖示開啟）'; b.disabled = true;
-  } else if (Notification.permission === 'granted') {
-    b.textContent = '✓ 已啟用'; b.disabled = true;
-  } else {
-    b.textContent = '啟用圖示數字（會詢問通知權限）'; b.disabled = false;
-  }
-}
-
-async function enableBadge() {
-  await Notification.requestPermission();
-  renderBadgeBtn();
-  render();
-}
-
 // ----- Connection -----
 function openSetup() {
   $('setupCode').value = '';
@@ -426,6 +401,7 @@ function saveSetup() {
 
 // ===== Boot =====
 document.addEventListener('gesturestart', e => e.preventDefault()); // iOS ignores user-scalable=no; block pinch zoom
+if ('clearAppBadge' in navigator) navigator.clearAppBadge().catch(() => {}); // remove badge left by the old icon-number feature
 rebuild();
 if (!cfg) openSetup(); else sync();
 window.addEventListener('online', sync);
